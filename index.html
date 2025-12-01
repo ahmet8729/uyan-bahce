@@ -4,19 +4,119 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>[translate:UYAN Bahçe Planlayıcı]</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2d7a4a" />
   <style>
-    /* Include your complete CSS styling here, exactly from file 138 */
+    body { font-family: sans-serif; background:#fafaf8; margin:0; padding:20px; }
+    header { background:#2d7a4a; color:#fff; padding:20px; border-radius:10px; text-align:center; }
+    .container { max-width:900px; margin:20px auto; }
+    .card { background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; margin-bottom:16px; }
+    label { display:block; margin-bottom:4px; font-weight:600; color:#2d7a4a; }
+    input, select { width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px; }
+    button { background:#2d7a4a; color:#fff; border:none; padding:10px 16px; border-radius:4px; cursor:pointer; }
+    button:hover { background:#25633b; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; }
+    .badge.hassas { background:rgba(244,67,54,.1); color:#f44336; }
+    .badge.dayanikli { background:rgba(76,175,80,.1); color:#4caf50; }
+    .date { background:rgba(244,164,96,.15); padding:2px 6px; border-radius:4px; }
   </style>
 </head>
 <body>
-  <!-- Include your full garden planner HTML content here, exactly as in file 138 -->
-  <!-- Keep scripts as in file 138 -->
+  <header>
+    <h1>[translate:UYAN Bahçe Planlayıcı]</h1>
+    <p>[translate:N17 Londra için basit dikim ve hasat rehberi]</p>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>[translate:Bölge ayarları]</h2>
+      <label>[translate:Son bahar donu tarihi]</label>
+      <input type="date" id="lastFrost" />
+    </div>
+
+    <div class="card">
+      <h2>[translate:Yeni ürün ekle]</h2>
+      <label>[translate:Ürün adı]</label>
+      <input id="name" placeholder="[translate:Domates, Patates...]" />
+      <label>[translate:Hasada kadar gün]</label>
+      <input id="days" type="number" value="75" />
+      <label>[translate:Don hassasiyeti]</label>
+      <select id="frost">
+        <option value="true">[translate:Hassas]</option>
+        <option value="false">[translate:Dayanıklı]</option>
+      </select>
+      <label>[translate:İçerde ekim (gün önce)]</label>
+      <input id="seedStart" type="number" value="60" />
+      <button onclick="addCrop()">[translate:+ Ürün ekle]</button>
+    </div>
+
+    <div class="card">
+      <h2>[translate:Dikiş planı]</h2>
+      <div id="list" class="grid"></div>
+    </div>
+  </div>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+    const defaultCrops = [
+      { name: "Domates", days: 75, frost: true, seed: 60 },
+      { name: "Patates", days: 90, frost: false, seed: 0 },
+      { name: "Mısır", days: 110, frost: true, seed: 30 },
+      { name: "Marul", days: 50, frost: false, seed: 0 }
+    ];
+
+    let crops = [...defaultCrops];
+
+    function getLastFrost() {
+      const v = document.getElementById('lastFrost').value;
+      return v ? new Date(v) : new Date();
     }
+
+    function addDays(d, n) {
+      const x = new Date(d);
+      x.setDate(x.getDate() + n);
+      return x;
+    }
+
+    function fmt(d) {
+      return d.toLocaleDateString('tr-TR');
+    }
+
+    function render() {
+      const root = document.getElementById('list');
+      const lastFrost = getLastFrost();
+      root.innerHTML = crops.map(c => {
+        const plantOut = c.frost ? lastFrost : addDays(lastFrost, -20);
+        const sowIn = c.seed ? addDays(plantOut, -c.seed) : plantOut;
+        const harvest = addDays(plantOut, c.days);
+        return `
+          <div class="card">
+            <h3>${c.name}</h3>
+            <p><strong>[translate:Hasada kadar]:</strong> ${c.days} [translate:gün]</p>
+            <p><strong>[translate:Don]:</strong> 
+              <span class="badge ${c.frost ? 'hassas' : 'dayanikli'}">
+                ${c.frost ? '[translate:Hassas]' : '[translate:Dayanıklı]'}
+              </span>
+            </p>
+            <p><strong>[translate:İçerde ekim]:</strong> <span class="date">${fmt(sowIn)}</span></p>
+            <p><strong>[translate:Dışarıya dikim]:</strong> <span class="date">${fmt(plantOut)}</span></p>
+            <p><strong>[translate:Tahmini hasat]:</strong> <span class="date">${fmt(harvest)}</span></p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addCrop() {
+      const name = document.getElementById('name').value.trim();
+      const days = parseInt(document.getElementById('days').value, 10);
+      const frost = document.getElementById('frost').value === 'true';
+      const seed = parseInt(document.getElementById('seedStart').value, 10);
+      if (!name || !days) return;
+      crops.push({ name, days, frost, seed });
+      render();
+    }
+
+    // set default frost date approx for N17
+    document.getElementById('lastFrost').value = '2025-03-30';
+    render();
   </script>
 </body>
 </html>
